@@ -1,4 +1,4 @@
--- SmartLootDrop 0.1.4 Beta: candidate scan diagnostics for WoW Forever.
+-- SmartLootDrop 0.1.5 Beta: container API fallback for WoW Forever.
 local addon = CreateFrame("Frame", "SmartLootDropEventFrame")
 local panel = CreateFrame("Frame", "SmartLootDropFrame", UIParent)
 panel:SetSize(440, 385)
@@ -30,7 +30,7 @@ end
 local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 EnlargeFont(title, GameFontNormal)
 title:SetPoint("TOPLEFT", panel, "TOPLEFT", 15, -15)
-title:SetText("SmartLootDrop 0.1.4 Beta")
+title:SetText("SmartLootDrop 0.1.5 Beta")
 
 local message = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 EnlargeFont(message, GameFontHighlightSmall)
@@ -82,30 +82,38 @@ local function GetCandidates()
     local getSlots = container and container.GetContainerNumSlots or GetContainerNumSlots
     local getLink = container and container.GetContainerItemLink or GetContainerItemLink
     local getInfo = container and container.GetContainerItemInfo or GetContainerItemInfo
+    local itemInfo = GetItemInfo or (C_Item and C_Item.GetItemInfo)
+    local getCount = container and container.GetContainerItemCount or GetContainerItemCount
     local stats = { slots = 0, links = 0, counts = 0, names = 0,
         prices = 0, quality = 0, quest = 0, locked = 0, eligible = 0 }
-    if type(getSlots) ~= "function" or type(getLink) ~= "function"
-        or type(getInfo) ~= "function" or type(GetItemInfo) ~= "function" then
-        return {}, stats
-    end
+    local function Available(fn) return type(fn) == "function" and "Y" or "N" end
+    stats.api = "API slots=" .. Available(getSlots) .. " link=" .. Available(getLink)
+        .. " bagInfo=" .. Available(getInfo) .. " itemInfo=" .. Available(itemInfo)
+        .. " count=" .. Available(getCount)
+    if type(getSlots) ~= "function" or type(itemInfo) ~= "function" then return {}, stats end
 
     local candidates = {}
     for bag = 0, 4 do
         local slots = getSlots(bag) or 0
         stats.slots = stats.slots + slots
         for slot = 1, slots do
-            local link = getLink(bag, slot)
+            local info, count, locked
+            if type(getInfo) == "function" then
+                info, count, locked = getInfo(bag, slot)
+            end
+            if type(info) == "table" then
+                count, locked = info.stackCount or info.count, info.isLocked
+                if info.isQuestItem then locked = true end
+            end
+            if not count and type(getCount) == "function" then count = getCount(bag, slot) end
+            local link = type(getLink) == "function" and getLink(bag, slot) or nil
+            if not link and type(info) == "table" then link = info.hyperlink end
             if link then
                 stats.links = stats.links + 1
-                local info, count, locked = getInfo(bag, slot)
-                if type(info) == "table" then
-                    count, locked = info.stackCount or info.count, info.isLocked
-                    if info.isQuestItem then locked = true end
-                end
                 if type(count) == "number" and count > 0 then stats.counts = stats.counts + 1 end
                 if locked then stats.locked = stats.locked + 1 end
                 local name, _, quality, _, _, itemType, itemSubType, maxStack,
-                    _, _, price, classID = GetItemInfo(link)
+                    _, _, price, classID = itemInfo(link)
                 if name then stats.names = stats.names + 1 end
                 if type(price) == "number" then stats.prices = stats.prices + 1 end
                 if type(quality) == "number" then stats.quality = stats.quality + 1 end
@@ -166,7 +174,8 @@ local function RenderCandidates()
                 .. stats.links .. " links / " .. stats.counts .. " counts"
                 .. "\n" .. stats.names .. " names / " .. stats.prices .. " prices / "
                 .. stats.quality .. " quality"
-                .. "\n" .. stats.quest .. " quest / " .. stats.locked .. " locked")
+                .. "\n" .. stats.quest .. " quest / " .. stats.locked .. " locked"
+                .. "\n" .. stats.api)
         else
             rows[index]:SetText("")
         end

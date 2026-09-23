@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5 Beta
+
+- Continue bag scanning when a direct link or count function is unavailable.
+- Use the bag item-info record's hyperlink and alternate item/count APIs.
+- Show API availability in the empty-candidate diagnostic display.
+
 ## 0.1.4 Beta
 
 - Show bag-scan diagnostic counts when Forever returns no candidates.
