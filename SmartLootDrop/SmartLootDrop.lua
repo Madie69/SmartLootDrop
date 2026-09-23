@@ -1,7 +1,7 @@
--- SmartLootDrop 0.1.2 Beta: read-only candidate preview for WoW Forever.
+-- SmartLootDrop 0.1.3 Beta: read-only candidate preview for WoW Forever.
 local addon = CreateFrame("Frame", "SmartLootDropEventFrame")
 local panel = CreateFrame("Frame", "SmartLootDropFrame", UIParent)
-panel:SetSize(410, 224)
+panel:SetSize(440, 385)
 panel:SetFrameStrata("DIALOG")
 panel:SetClampedToScreen(true)
 local background = panel:CreateTexture(nil, "BACKGROUND")
@@ -30,20 +30,20 @@ end
 local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 EnlargeFont(title, GameFontNormal)
 title:SetPoint("TOPLEFT", panel, "TOPLEFT", 15, -15)
-title:SetText("SmartLootDrop 0.1.2 Beta")
+title:SetText("SmartLootDrop 0.1.3 Beta")
 
 local message = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 EnlargeFont(message, GameFontHighlightSmall)
 message:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -12)
 message:SetPoint("RIGHT", panel, "RIGHT", -15, 0)
 message:SetJustifyH("LEFT")
-message:SetText("Bags full. Lowest-cost candidates:")
+message:SetText("Bags full. Compare bag-slot values:")
 
 local rows = {}
-for index = 1, 2 do
+for index = 1, 4 do
     local row = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     EnlargeFont(row, GameFontHighlightSmall)
-    row:SetPoint("TOPLEFT", panel, "TOPLEFT", 15, -65 - (index - 1) * 70)
+    row:SetPoint("TOPLEFT", panel, "TOPLEFT", 15, -65 - (index - 1) * 69)
     row:SetPoint("RIGHT", panel, "RIGHT", -15, 0)
     row:SetJustifyH("LEFT")
     row:SetText("")
@@ -54,6 +54,19 @@ local note = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 EnlargeFont(note, GameFontDisableSmall)
 note:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 15, 12)
 note:SetText("Preview only: no items can be destroyed in this build.")
+
+local page = 1
+local pageCount = 1
+local previous = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+previous:SetSize(55, 23)
+previous:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -115, 34)
+previous:SetText("Prev")
+local nextPage = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+nextPage:SetSize(55, 23)
+nextPage:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -15, 34)
+nextPage:SetText("Next")
+local pageLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+pageLabel:SetPoint("RIGHT", nextPage, "LEFT", -4, 0)
 
 local function Money(amount)
     local gold = math.floor(amount / 10000)
@@ -85,15 +98,19 @@ local function GetCandidates()
                 end
                 local name, _, quality, _, _, itemType, itemSubType, maxStack,
                     _, _, price, classID = GetItemInfo(link)
-                local quest = type(GetContainerItemQuestInfo) == "function"
-                    and GetContainerItemQuestInfo(bag, slot)
-                if not quest and container and type(container.GetContainerItemQuestInfo) == "function" then
+                local quest = false
+                if type(GetContainerItemQuestInfo) == "function" then
+                    local isQuestItem, questID = GetContainerItemQuestInfo(bag, slot)
+                    quest = isQuestItem == true or (type(questID) == "number" and questID > 0)
+                end
+                if container and type(container.GetContainerItemQuestInfo) == "function" then
                     local questInfo = container.GetContainerItemQuestInfo(bag, slot)
-                    quest = questInfo and (questInfo.isQuestItem or questInfo.questID)
+                    quest = quest or (questInfo and (questInfo.isQuestItem == true
+                        or (type(questInfo.questID) == "number" and questInfo.questID > 0)))
                 end
                 if name and type(count) == "number" and count > 0 and not locked
-                    and (quality == 0 or quality == 1)
-                    and type(price) == "number" and price > 0
+                    and type(quality) == "number" and quality >= 0
+                    and type(price) == "number" and price >= 0
                     and not quest and itemType ~= "Quest" and itemType ~= "Key"
                     and classID ~= 12 and classID ~= 13 then
                     candidates[#candidates + 1] = {
@@ -117,18 +134,36 @@ end
 
 local function RenderCandidates()
     local candidates = GetCandidates()
-    for index = 1, 2 do
-        local item = candidates[index]
+    pageCount = math.max(1, math.ceil(#candidates / 4))
+    page = math.max(1, math.min(page, pageCount))
+    pageLabel:SetText(page .. "/" .. pageCount)
+    if page > 1 then previous:Enable() else previous:Disable() end
+    if page < pageCount then nextPage:Enable() else nextPage:Disable() end
+    for index = 1, 4 do
+        local item = candidates[(page - 1) * 4 + index]
         if item then
+            local qualityNames = { [0] = "Poor", [1] = "Common", [2] = "Uncommon",
+                [3] = "RARE - CAUTION", [4] = "EPIC - CAUTION", [5] = "LEGENDARY - CAUTION" }
+            local qualityName = qualityNames[item.quality] or "HIGH QUALITY - CAUTION"
             rows[index]:SetText(item.name .. " x" .. item.count .. "/" .. item.maxStack
+                .. "  [" .. qualityName .. "]"
                 .. "\nNow: " .. Money(item.current) .. "   Full stack: " .. Money(item.potential))
         elseif index == 1 then
-            rows[index]:SetText("No safe, priced junk or common items found.")
+            rows[index]:SetText("No eligible items with vendor price data found.")
         else
             rows[index]:SetText("")
         end
     end
 end
+
+previous:SetScript("OnClick", function()
+    page = page - 1
+    RenderCandidates()
+end)
+nextPage:SetScript("OnClick", function()
+    page = page + 1
+    RenderCandidates()
+end)
 
 local function FreeGeneralSlots()
     local api = C_Container
