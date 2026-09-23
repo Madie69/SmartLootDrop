@@ -1,4 +1,4 @@
-SmartLootDrop 0.1.5 Beta
+SmartLootDrop 0.1.6 Beta
 ========================
 WoW Forever, Interface 16001. Standalone, no required dependencies.
 
@@ -18,6 +18,8 @@ Quest ID zero is treated as a non-quest item.
 If there are no candidates, the panel displays bag-scan counts for debugging.
 This build can read item links from bag item-info records when direct link APIs
 are absent, and reports available bag API functions in the empty state.
+Items with zero vendor price are omitted, as are common utility tools such as
+Hearthstone, Camp Tent, Skinning Knife, Fishing Pole and profession tools.
 
 Test: open loot with a free general bag slot; fill the last free slot while
 loot remains open; close loot; reopen loot with bags full; free a general slot.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.6 Beta
+
+- Hide zero-price items from ordinary sacrifice candidates.
+- Protect Hearthstone, Camp Tent, gathering and crafting tools by name.
+
 ## 0.1.5 Beta
 
 - Continue bag scanning when a direct link or count function is unavailable.

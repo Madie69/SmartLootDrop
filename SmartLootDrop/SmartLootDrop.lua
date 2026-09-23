@@ -1,4 +1,4 @@
--- SmartLootDrop 0.1.5 Beta: container API fallback for WoW Forever.
+-- SmartLootDrop 0.1.6 Beta: protect utility items on WoW Forever.
 local addon = CreateFrame("Frame", "SmartLootDropEventFrame")
 local panel = CreateFrame("Frame", "SmartLootDropFrame", UIParent)
 panel:SetSize(440, 385)
@@ -30,7 +30,7 @@ end
 local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 EnlargeFont(title, GameFontNormal)
 title:SetPoint("TOPLEFT", panel, "TOPLEFT", 15, -15)
-title:SetText("SmartLootDrop 0.1.5 Beta")
+title:SetText("SmartLootDrop 0.1.6 Beta")
 
 local message = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 EnlargeFont(message, GameFontHighlightSmall)
@@ -76,6 +76,18 @@ local function Money(amount)
     if silver > 0 then return silver .. "s " .. copper .. "c" end
     return copper .. "c"
 end
+
+-- Conservative defaults for the English client. An ID-based protection list
+-- can replace these names after Forever item IDs are verified in-game.
+local protectedNames = {
+    ["Hearthstone"] = true,
+    ["Camp Tent"] = true,
+    ["Skinning Knife"] = true,
+    ["Fishing Pole"] = true,
+    ["Mining Pick"] = true,
+    ["Blacksmith Hammer"] = true,
+    ["Arclight Spanner"] = true,
+}
 
 local function GetCandidates()
     local container = C_Container
@@ -130,7 +142,8 @@ local function GetCandidates()
                 if quest then stats.quest = stats.quest + 1 end
                 if name and type(count) == "number" and count > 0 and not locked
                     and type(quality) == "number" and quality >= 0
-                    and type(price) == "number" and price >= 0
+                    and type(price) == "number" and price > 0
+                    and not protectedNames[name]
                     and not quest and itemType ~= "Quest" and itemType ~= "Key"
                     and classID ~= 12 and classID ~= 13 then
                     candidates[#candidates + 1] = {
