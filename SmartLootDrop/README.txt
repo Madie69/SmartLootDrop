@@ -1,4 +1,4 @@
-SmartLootDrop 0.1.0 Beta
+SmartLootDrop 0.1.1 Beta
 ========================
 WoW Forever, Interface 16001. Standalone, no required dependencies.
 
@@ -8,6 +8,7 @@ result is Interface/AddOns/SmartLootDrop/SmartLootDrop.toc.
 This first test build checks the strict opening rule only. Its small companion
 panel appears when the Blizzard Loot window is visible AND ordinary bag slots
 have zero free spaces. It disappears when either condition stops being true.
+The panel has larger text and a gold border.
 It does not yet inspect, recommend, or destroy any items. No item can be
 deleted by this build.
 

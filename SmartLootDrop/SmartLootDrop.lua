@@ -1,21 +1,41 @@
--- SmartLootDrop 0.1.0 Beta: visibility foundation for WoW Forever.
+-- SmartLootDrop 0.1.1 Beta: visibility foundation for WoW Forever.
 local addon = CreateFrame("Frame", "SmartLootDropEventFrame")
 local panel = CreateFrame("Frame", "SmartLootDropFrame", UIParent)
-panel:SetSize(230, 82)
+panel:SetSize(320, 110)
 panel:SetFrameStrata("DIALOG")
 panel:SetClampedToScreen(true)
 local background = panel:CreateTexture(nil, "BACKGROUND")
 background:SetAllPoints(panel)
 background:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Background")
+local function BorderEdge(first, second, width, height)
+    local edge = panel:CreateTexture(nil, "BORDER")
+    edge:SetTexture("Interface\\Buttons\\WHITE8X8")
+    edge:SetVertexColor(0.85, 0.68, 0.25, 1)
+    edge:SetPoint(first, panel, first, 0, 0)
+    edge:SetPoint(second, panel, second, 0, 0)
+    if width then edge:SetWidth(width) end
+    if height then edge:SetHeight(height) end
+end
+BorderEdge("TOPLEFT", "TOPRIGHT", nil, 2)
+BorderEdge("BOTTOMLEFT", "BOTTOMRIGHT", nil, 2)
+BorderEdge("TOPLEFT", "BOTTOMLEFT", 2, nil)
+BorderEdge("TOPRIGHT", "BOTTOMRIGHT", 2, nil)
 panel:Hide()
 
+local function EnlargeFont(fontString, fontObject)
+    local font, size, flags = fontObject:GetFont()
+    if font and size then fontString:SetFont(font, size + 4, flags) end
+end
+
 local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-title:SetPoint("TOPLEFT", panel, "TOPLEFT", 13, -11)
-title:SetText("SmartLootDrop 0.1.0 Beta")
+EnlargeFont(title, GameFontNormal)
+title:SetPoint("TOPLEFT", panel, "TOPLEFT", 15, -15)
+title:SetText("SmartLootDrop 0.1.1 Beta")
 
 local message = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-message:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -9)
-message:SetPoint("RIGHT", panel, "RIGHT", -13, 0)
+EnlargeFont(message, GameFontHighlightSmall)
+message:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -12)
+message:SetPoint("RIGHT", panel, "RIGHT", -15, 0)
 message:SetJustifyH("LEFT")
 message:SetText("Bags full. Candidate selection comes in the next build.")
 
