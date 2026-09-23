@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 Beta
+
+- Show two read-only sacrifice candidates with current and full-stack vendor values.
+- Exclude locked, quest/key, unpriced, uncommon and higher-quality items.
+
 ## 0.1.1 Beta
 
 - Increase both visible font sizes by four points and enlarge the panel.
