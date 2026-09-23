@@ -1,4 +1,4 @@
--- SmartLootDrop 0.1.3 Beta: read-only candidate preview for WoW Forever.
+-- SmartLootDrop 0.1.4 Beta: candidate scan diagnostics for WoW Forever.
 local addon = CreateFrame("Frame", "SmartLootDropEventFrame")
 local panel = CreateFrame("Frame", "SmartLootDropFrame", UIParent)
 panel:SetSize(440, 385)
@@ -30,7 +30,7 @@ end
 local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 EnlargeFont(title, GameFontNormal)
 title:SetPoint("TOPLEFT", panel, "TOPLEFT", 15, -15)
-title:SetText("SmartLootDrop 0.1.3 Beta")
+title:SetText("SmartLootDrop 0.1.4 Beta")
 
 local message = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 EnlargeFont(message, GameFontHighlightSmall)
@@ -82,22 +82,33 @@ local function GetCandidates()
     local getSlots = container and container.GetContainerNumSlots or GetContainerNumSlots
     local getLink = container and container.GetContainerItemLink or GetContainerItemLink
     local getInfo = container and container.GetContainerItemInfo or GetContainerItemInfo
+    local stats = { slots = 0, links = 0, counts = 0, names = 0,
+        prices = 0, quality = 0, quest = 0, locked = 0, eligible = 0 }
     if type(getSlots) ~= "function" or type(getLink) ~= "function"
-        or type(getInfo) ~= "function" or type(GetItemInfo) ~= "function" then return {} end
+        or type(getInfo) ~= "function" or type(GetItemInfo) ~= "function" then
+        return {}, stats
+    end
 
     local candidates = {}
     for bag = 0, 4 do
         local slots = getSlots(bag) or 0
+        stats.slots = stats.slots + slots
         for slot = 1, slots do
             local link = getLink(bag, slot)
             if link then
+                stats.links = stats.links + 1
                 local info, count, locked = getInfo(bag, slot)
                 if type(info) == "table" then
-                    count, locked = info.stackCount, info.isLocked
+                    count, locked = info.stackCount or info.count, info.isLocked
                     if info.isQuestItem then locked = true end
                 end
+                if type(count) == "number" and count > 0 then stats.counts = stats.counts + 1 end
+                if locked then stats.locked = stats.locked + 1 end
                 local name, _, quality, _, _, itemType, itemSubType, maxStack,
                     _, _, price, classID = GetItemInfo(link)
+                if name then stats.names = stats.names + 1 end
+                if type(price) == "number" then stats.prices = stats.prices + 1 end
+                if type(quality) == "number" then stats.quality = stats.quality + 1 end
                 local quest = false
                 if type(GetContainerItemQuestInfo) == "function" then
                     local isQuestItem, questID = GetContainerItemQuestInfo(bag, slot)
@@ -108,6 +119,7 @@ local function GetCandidates()
                     quest = quest or (questInfo and (questInfo.isQuestItem == true
                         or (type(questInfo.questID) == "number" and questInfo.questID > 0)))
                 end
+                if quest then stats.quest = stats.quest + 1 end
                 if name and type(count) == "number" and count > 0 and not locked
                     and type(quality) == "number" and quality >= 0
                     and type(price) == "number" and price >= 0
@@ -118,6 +130,7 @@ local function GetCandidates()
                         current = price * count, potential = price * math.max(1, maxStack or 1),
                         quality = quality, bag = bag, slot = slot,
                     }
+                    stats.eligible = stats.eligible + 1
                 end
             end
         end
@@ -129,11 +142,11 @@ local function GetCandidates()
         if a.bag ~= b.bag then return a.bag < b.bag end
         return a.slot < b.slot
     end)
-    return candidates
+    return candidates, stats
 end
 
 local function RenderCandidates()
-    local candidates = GetCandidates()
+    local candidates, stats = GetCandidates()
     pageCount = math.max(1, math.ceil(#candidates / 4))
     page = math.max(1, math.min(page, pageCount))
     pageLabel:SetText(page .. "/" .. pageCount)
@@ -149,7 +162,11 @@ local function RenderCandidates()
                 .. "  [" .. qualityName .. "]"
                 .. "\nNow: " .. Money(item.current) .. "   Full stack: " .. Money(item.potential))
         elseif index == 1 then
-            rows[index]:SetText("No eligible items with vendor price data found.")
+            rows[index]:SetText("No candidates. Scan: " .. stats.slots .. " slots / "
+                .. stats.links .. " links / " .. stats.counts .. " counts"
+                .. "\n" .. stats.names .. " names / " .. stats.prices .. " prices / "
+                .. stats.quality .. " quality"
+                .. "\n" .. stats.quest .. " quest / " .. stats.locked .. " locked")
         else
             rows[index]:SetText("")
         end

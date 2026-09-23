@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 Beta
+
+- Show bag-scan diagnostic counts when Forever returns no candidates.
+- Accept either stackCount or count from the bag item-info table.
+
 ## 0.1.3 Beta
 
 - Treat quest ID zero as a non-quest item when filtering bag candidates.

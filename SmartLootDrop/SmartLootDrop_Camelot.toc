@@ -2,6 +2,6 @@
 ## Title: SmartLootDrop
 ## Notes: Shows bag-space help while the loot window is open and bags are full.
 ## Author: Kevin Love
-## Version: 0.1.3 Beta
+## Version: 0.1.4 Beta
 
 SmartLootDrop.lua
